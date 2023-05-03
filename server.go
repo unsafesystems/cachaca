@@ -17,7 +17,7 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"github.com/unsafesystems/cachaca/pkg/logger"
+	"github.com/unsafesystems/cachaca/internal/logger"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -178,7 +178,7 @@ func initializeServer() *Server {
 		jwtToken:        nil,
 		insecureHealth:  false,
 	}
-	server.Use(logger.Logger())
+	server.Use(logger.NewGinLogger())
 	server.Use(gin.Recovery())
 
 	return server

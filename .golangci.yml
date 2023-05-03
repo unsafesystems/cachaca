@@ -1,0 +1,30 @@
+linters-settings:
+  wrapcheck:
+    ignoreSigs:
+    - status.Error(
+    - .Errorf(
+    - errors.New(
+    - errors.Unwrap(
+    - errors.Join(
+    - .Wrap(
+    - .Wrapf(
+    - .WithMessage(
+    - .WithMessagef(
+    - .WithStack(
+
+linters:
+  enable-all: true
+  disable:
+    - interfacer
+    - maligned
+    - deadcode
+    - nosnakecase
+    - varcheck
+    - ifshort
+    - structcheck
+    - golint
+    - scopelint
+    - exhaustivestruct
+    - structcheck
+    - testpackage # I don't think we should have tests in a separate package
+    - paralleltest

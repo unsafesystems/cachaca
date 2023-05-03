@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/unsafesystems/opinionated"
+	"github.com/unsafesystems/cachaca"
 	"net"
 )
 
 func main() {
-	server, err := opinionated.NewServer(
-		opinionated.WithInsecureHealth(),
-		opinionated.WithEmbeddedMetricsEndpoint(),
+	server, err := cachaca.NewServer(
+		cachaca.WithInsecureHealth(),
+		cachaca.WithEmbeddedMetricsEndpoint(),
 	)
 	if err != nil {
 		panic(err)

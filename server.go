@@ -17,7 +17,7 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"github.com/unsafesystems/opinionated/pkg/logger"
+	"github.com/unsafesystems/cachaca/pkg/logger"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -145,10 +145,9 @@ func NewServer(opts ...Option) (*Server, error) {
 	}
 
 	if server.http == nil {
-
 		server.http = server.Engine.Handler()
 		server.GET("/ping", func(context *gin.Context) {
-			context.String(200, "pong")
+			context.String(http.StatusOK, "pong")
 		})
 	}
 

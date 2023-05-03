@@ -1,7 +1,8 @@
 //nolint
-package auth
+package cachaca
 
 import (
+	"cachaca/auth"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
@@ -60,7 +61,7 @@ func TestAuthentication_TokenSuccess(t *testing.T) {
 	require.NotNil(t, ctx)
 	assert.Nil(t, err)
 
-	authContext, ok := ctx.Value(AuthenticationKey{}).(Authentication)
+	authContext, ok := ctx.Value(auth.AuthenticationKey{}).(auth.Authentication)
 	require.True(t, ok)
 
 	tokenClaims := authContext.Token.(*jwt.StandardClaims)
@@ -99,7 +100,7 @@ func TestAuthentication_CustomToken(t *testing.T) {
 	require.NotNil(t, ctx)
 	assert.Nil(t, err)
 
-	authContext, ok := ctx.Value(AuthenticationKey{}).(Authentication)
+	authContext, ok := ctx.Value(auth.AuthenticationKey{}).(auth.Authentication)
 	require.True(t, ok)
 
 	tokenClaims := authContext.Token.(*CustomClaims)

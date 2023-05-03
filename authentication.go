@@ -1,8 +1,8 @@
-package auth
+package cachaca
 
 import (
+	auth2 "cachaca/auth"
 	"context"
-	"crypto/x509"
 	"reflect"
 
 	"github.com/dgrijalva/jwt-go"
@@ -27,15 +27,8 @@ func NewAuthenticationMiddleware(jwtKeyFunc jwt.Keyfunc, jwtToken jwt.Claims) *A
 	}
 }
 
-type AuthenticationKey struct{}
-
-type Authentication struct {
-	Certificates []*x509.Certificate
-	Token        jwt.Claims
-}
-
 func (middleware *AuthenticationMiddleware) Middleware(ctx context.Context) (context.Context, error) {
-	authentication := Authentication{
+	authentication := auth2.Authentication{
 		Certificates: nil,
 		Token:        nil,
 	}
@@ -69,7 +62,7 @@ func (middleware *AuthenticationMiddleware) Middleware(ctx context.Context) (con
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
-	return context.WithValue(ctx, AuthenticationKey{}, authentication), nil
+	return auth2.WithCreds(ctx, authentication), nil
 }
 
 func (middleware *AuthenticationMiddleware) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -78,10 +71,4 @@ func (middleware *AuthenticationMiddleware) UnaryServerInterceptor() grpc.UnaryS
 
 func (middleware *AuthenticationMiddleware) StreamServerInterceptor() grpc.StreamServerInterceptor {
 	return auth.StreamServerInterceptor(middleware.Middleware)
-}
-
-func GetCreds(ctx context.Context) (*Authentication, bool) {
-	authentication, ok := ctx.Value(AuthenticationKey{}).(Authentication)
-
-	return &authentication, ok
 }

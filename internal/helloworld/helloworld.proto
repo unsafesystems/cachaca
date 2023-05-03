@@ -18,7 +18,12 @@ message CommonNameResponse {
   string common_name = 1;
 }
 
+message PanicRequest {}
+
+message PanicResponse {}
+
 service HelloWorld {
   rpc Ping(PingRequest) returns (PongResponse);
   rpc CommonName(CommonNameRequest) returns (CommonNameResponse);
+  rpc Panic(PanicRequest) returns (PanicResponse);
 }

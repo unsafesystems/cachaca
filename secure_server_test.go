@@ -12,6 +12,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"math/big"
 	"net"
@@ -152,6 +154,14 @@ func (s *SecureServerTestSuite) TestServer_CommonName() {
 
 	require.Nil(s.T(), err, fmt.Sprintf("%+v", err))
 	assert.Equal(s.T(), "client1", resp.CommonName)
+}
+
+func (s *SecureServerTestSuite) TestServer_Panic() {
+	pingClient := helloworld.NewHelloWorldClient(s.client)
+	_, err := pingClient.Panic(context.Background(), &helloworld.PanicRequest{})
+
+	require.NotNil(s.T(), err, fmt.Sprintf("%+v", err))
+	assert.Equal(s.T(), codes.Internal, status.Code(err))
 }
 
 type certificates struct {

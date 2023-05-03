@@ -1,7 +1,6 @@
 package cachaca
 
 import (
-	"cachaca/auth"
 	"cachaca/internal/logger"
 	"context"
 	"crypto/tls"
@@ -138,7 +137,7 @@ func NewServer(opts ...Option) (*Server, error) {
 	}
 
 	if server.grpc == nil {
-		middleware := auth.NewAuthenticationMiddleware(server.jwtKeyFunc, server.jwtToken)
+		middleware := NewAuthenticationMiddleware(server.jwtKeyFunc, server.jwtToken)
 
 		unaryInt := grpc.ChainUnaryInterceptor(
 			otelgrpc.UnaryServerInterceptor(),

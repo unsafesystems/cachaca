@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
@@ -16,8 +17,6 @@ import (
 	"net"
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestServer_DisableGrpcWeb(t *testing.T) {

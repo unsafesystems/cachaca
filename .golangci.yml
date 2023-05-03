@@ -31,3 +31,5 @@ linters:
     - structcheck
     - testpackage # I don't think we should have tests in a separate package
     - paralleltest
+    - exhaustruct # Defaults are there for a reason...
+    - gci # can be enabled after this is fixed: https://github.com/golangci/golangci-lint/issues/1490

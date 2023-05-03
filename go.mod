@@ -1,6 +1,6 @@
-module github.com/unsafesystems/cachaca
+module cachaca
 
-go 1.19
+go 1.20
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -8,12 +8,14 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/improbable-eng/grpc-web v0.15.0
-	github.com/prometheus/client_golang v1.15.0
+	github.com/prometheus/client_golang v1.15.1
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.2
+	github.com/unsafesystems/cachaca v0.0.0-20230503092048-b33c620fcb6f
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.41.1
 	golang.org/x/net v0.9.0
 	google.golang.org/grpc v1.54.0
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
@@ -57,7 +59,6 @@ require (
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 )

@@ -16,3 +16,7 @@ with the dish feijoada. (Source: [Wikipedia](https://en.wikipedia.org/wiki/Cacha
 ## /pkg/logger
 In order to ensure a consistent logging experience all loggers are redirected to zerolog using the functionality
 provided in this folder. This way all configuration can be done in zerolog and makes the life of DevOps easier.
+
+
+## TEST
+Some test content

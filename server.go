@@ -1,8 +1,11 @@
 package cachaca
 
 import (
+	"cachaca/auth"
+	"cachaca/internal/logger"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,7 +20,6 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"github.com/unsafesystems/cachaca/internal/logger"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -99,6 +101,21 @@ func WithJwtToken(token jwt.Claims) Option {
 	}
 }
 
+// WithMTLSConfig sets the mTLS configuration for the server. This requires client certificates signed by a ca from the
+// pool and will serve with the given Certificate.
+func WithMTLSConfig(pool *x509.CertPool, server *tls.Certificate) Option {
+	return func(s *Server) error {
+		s.tls = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    pool,
+			Certificates: []tls.Certificate{*server},
+		}
+
+		return nil
+	}
+}
+
 // WithEmbeddedMetricsEndpoint enables the prometheus metrics on the /metrics endpoint. Please note that when using
 // a custom http handler this option will not be applied successfully.
 func WithEmbeddedMetricsEndpoint() Option {
@@ -121,7 +138,7 @@ func NewServer(opts ...Option) (*Server, error) {
 	}
 
 	if server.grpc == nil {
-		middleware := NewAuthenticationMiddleware(server.jwtKeyFunc, server.jwtToken)
+		middleware := auth.NewAuthenticationMiddleware(server.jwtKeyFunc, server.jwtToken)
 
 		unaryInt := grpc.ChainUnaryInterceptor(
 			otelgrpc.UnaryServerInterceptor(),

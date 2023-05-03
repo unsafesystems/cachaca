@@ -1,0 +1,24 @@
+syntax = "proto3";
+option go_package = "github.com/unsafesystems/cachaca/helloworld";
+
+package github.unsafesystems.cachaca;
+
+message PingRequest {
+  string message = 1;
+}
+
+message PongResponse {
+  string message = 1;
+}
+
+message CommonNameRequest {
+}
+
+message CommonNameResponse {
+  string common_name = 1;
+}
+
+service HelloWorld {
+  rpc Ping(PingRequest) returns (PongResponse);
+  rpc CommonName(CommonNameRequest) returns (CommonNameResponse);
+}

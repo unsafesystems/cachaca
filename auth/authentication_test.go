@@ -1,5 +1,5 @@
 //nolint
-package cachaca
+package auth
 
 import (
 	"context"

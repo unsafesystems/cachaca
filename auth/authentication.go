@@ -1,4 +1,4 @@
-package cachaca
+package auth
 
 import (
 	"context"
@@ -78,4 +78,10 @@ func (middleware *AuthenticationMiddleware) UnaryServerInterceptor() grpc.UnaryS
 
 func (middleware *AuthenticationMiddleware) StreamServerInterceptor() grpc.StreamServerInterceptor {
 	return auth.StreamServerInterceptor(middleware.Middleware)
+}
+
+func GetCreds(ctx context.Context) (*Authentication, bool) {
+	authentication, ok := ctx.Value(AuthenticationKey{}).(Authentication)
+
+	return &authentication, ok
 }

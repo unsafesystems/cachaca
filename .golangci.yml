@@ -11,6 +11,9 @@ linters-settings:
     - .WithMessage(
     - .WithMessagef(
     - .WithStack(
+  exhaustruct:
+    exclude:
+      - "http.Server"
 
 linters:
   enable-all: true

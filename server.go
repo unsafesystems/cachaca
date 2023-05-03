@@ -186,20 +186,19 @@ func initializeServer() *Server {
 
 func prepareServer(server *Server) *http.Server {
 	return &http.Server{
-		Addr:                         "",
-		Handler:                      nil,
-		DisableGeneralOptionsHandler: false,
-		TLSConfig:                    server.tls,
-		ReadTimeout:                  server.readTimeout,
-		ReadHeaderTimeout:            0,
-		WriteTimeout:                 0,
-		IdleTimeout:                  0,
-		MaxHeaderBytes:               0,
-		TLSNextProto:                 nil,
-		ConnState:                    nil,
-		ErrorLog:                     logger.NewHTTPErrorLogger(),
-		BaseContext:                  nil,
-		ConnContext:                  nil,
+		Addr:              "",
+		Handler:           nil,
+		TLSConfig:         server.tls,
+		ReadTimeout:       server.readTimeout,
+		ReadHeaderTimeout: 0,
+		WriteTimeout:      0,
+		IdleTimeout:       0,
+		MaxHeaderBytes:    0,
+		TLSNextProto:      nil,
+		ConnState:         nil,
+		ErrorLog:          logger.NewHTTPErrorLogger(),
+		BaseContext:       nil,
+		ConnContext:       nil,
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -55,9 +55,9 @@ func TestServer_WithJwtKeyFunc(t *testing.T) {
 }
 
 func TestServer_WithJwtToken(t *testing.T) {
-	s, err := NewServer(WithJwtToken(jwt.StandardClaims{}))
+	s, err := NewServer(WithJwtToken(jwt.RegisteredClaims{}))
 	assert.Nil(t, err)
-	assert.Equal(t, jwt.StandardClaims{}, s.jwtToken)
+	assert.Equal(t, jwt.RegisteredClaims{}, s.jwtToken)
 }
 
 func TestServer(t *testing.T) {

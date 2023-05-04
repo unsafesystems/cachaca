@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/rs/zerolog/log"
 	auth2 "github.com/unsafesystems/cachaca/auth"

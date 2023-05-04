@@ -2,8 +2,12 @@
 package cachaca
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,6 +41,23 @@ func TestServer_ReadTimeout(t *testing.T) {
 	s, err := NewServer(WithReadTimeout(time.Second))
 	assert.Nil(t, err)
 	assert.Equal(t, time.Second, s.readTimeout)
+}
+
+func TestServer_WithJwtKeyFunc(t *testing.T) {
+	fn := func(*jwt.Token) (interface{}, error) {
+		return "ok", nil
+	}
+
+	s, err := NewServer(WithJwtKeyFunc(fn))
+	assert.Nil(t, err)
+	v, _ := s.jwtKeyFunc(nil)
+	assert.Equal(t, "ok", v.(string)) // Testing for function equality doesn't work
+}
+
+func TestServer_WithJwtToken(t *testing.T) {
+	s, err := NewServer(WithJwtToken(jwt.StandardClaims{}))
+	assert.Nil(t, err)
+	assert.Equal(t, jwt.StandardClaims{}, s.jwtToken)
 }
 
 func TestServer(t *testing.T) {
@@ -132,4 +153,47 @@ func (s *ServerTestSuite) TestServer_Ping() {
 	resp, err := io.ReadAll(response.Body)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "pong", string(resp))
+}
+
+func makeGrpcWebRequest(t *testing.T, payload proto.Message) io.Reader {
+	data, err := proto.Marshal(payload)
+	require.Nil(t, err)
+
+	header := make([]byte, 5)
+	binary.BigEndian.PutUint32(header[1:], uint32(len(data)))
+	buf := bytes.NewBuffer(header)
+	buf.Write(data)
+
+	return buf
+}
+
+func parseGrpcWebResponse(t *testing.T, resp *http.Response, payload proto.Message) {
+	data, err := io.ReadAll(resp.Body)
+	require.Nil(t, err)
+
+	l := binary.BigEndian.Uint32(data[1:5])
+	data = data[5 : l+5]
+
+	require.Nil(t, proto.Unmarshal(data, payload))
+}
+
+func (s *ServerTestSuite) TestServer_GrpcWeb() {
+	payload := &healthpb.HealthCheckRequest{Service: ""}
+	buf := makeGrpcWebRequest(s.T(), payload)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/grpc.health.v1.Health/Check", s.port), buf)
+	require.Nil(s.T(), err)
+
+	req.Header.Set("Content-Type", "application/grpc-web")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	require.Nil(s.T(), err)
+
+	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
+	assert.Equal(s.T(), "application/grpc-web", resp.Header.Get("Content-Type"))
+
+	response := new(healthpb.HealthCheckResponse)
+	parseGrpcWebResponse(s.T(), resp, response)
+	assert.Equal(s.T(), healthpb.HealthCheckResponse_SERVING, response.Status)
 }

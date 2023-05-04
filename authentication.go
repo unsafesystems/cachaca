@@ -1,13 +1,13 @@
 package cachaca
 
 import (
-	auth2 "cachaca/auth"
 	"context"
 	"reflect"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/rs/zerolog/log"
+	auth2 "github.com/unsafesystems/cachaca/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

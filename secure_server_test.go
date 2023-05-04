@@ -3,7 +3,6 @@ package cachaca
 
 import (
 	"bytes"
-	"cachaca/internal/helloworld"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -12,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"github.com/unsafesystems/cachaca/internal/helloworld"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"

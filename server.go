@@ -1,7 +1,6 @@
 package cachaca
 
 import (
-	"cachaca/internal/logger"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/unsafesystems/cachaca/internal/logger"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"

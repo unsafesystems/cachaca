@@ -2,11 +2,11 @@
 package cachaca
 
 import (
-	"cachaca/auth"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"github.com/unsafesystems/cachaca/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"

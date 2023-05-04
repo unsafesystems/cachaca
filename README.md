@@ -1,5 +1,6 @@
 # Cachaça
 [![codecov](https://codecov.io/github/unsafesystems/cachaca/branch/master/graph/badge.svg?token=PNMZFT2LGU)](https://codecov.io/github/unsafesystems/cachaca)
+[![Go Reference](https://pkg.go.dev/badge/github.com/unsafesystems/cachaca.svg)](https://pkg.go.dev/github.com/unsafesystems/cachaca)
 
 Cachaça (Portuguese pronunciation: [kaˈʃasɐ](https://dictionary.cambridge.org/pronunciation/english/cachaca)) is a 
 distilled spirit made from fermented sugarcane juice. Also known as pinga, caninha, and other names, it is the most 

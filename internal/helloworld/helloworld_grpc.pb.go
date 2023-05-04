@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	HelloWorld_Ping_FullMethodName       = "/github.unsafesystems.cachaca.HelloWorld/Ping"
 	HelloWorld_CommonName_FullMethodName = "/github.unsafesystems.cachaca.HelloWorld/CommonName"
+	HelloWorld_Panic_FullMethodName      = "/github.unsafesystems.cachaca.HelloWorld/Panic"
 )
 
 // HelloWorldClient is the client API for HelloWorld service.
@@ -29,6 +30,7 @@ const (
 type HelloWorldClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PongResponse, error)
 	CommonName(ctx context.Context, in *CommonNameRequest, opts ...grpc.CallOption) (*CommonNameResponse, error)
+	Panic(ctx context.Context, in *PanicRequest, opts ...grpc.CallOption) (*PanicResponse, error)
 }
 
 type helloWorldClient struct {
@@ -57,12 +59,22 @@ func (c *helloWorldClient) CommonName(ctx context.Context, in *CommonNameRequest
 	return out, nil
 }
 
+func (c *helloWorldClient) Panic(ctx context.Context, in *PanicRequest, opts ...grpc.CallOption) (*PanicResponse, error) {
+	out := new(PanicResponse)
+	err := c.cc.Invoke(ctx, HelloWorld_Panic_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HelloWorldServer is the server API for HelloWorld service.
 // All implementations must embed UnimplementedHelloWorldServer
 // for forward compatibility
 type HelloWorldServer interface {
 	Ping(context.Context, *PingRequest) (*PongResponse, error)
 	CommonName(context.Context, *CommonNameRequest) (*CommonNameResponse, error)
+	Panic(context.Context, *PanicRequest) (*PanicResponse, error)
 	mustEmbedUnimplementedHelloWorldServer()
 }
 
@@ -75,6 +87,9 @@ func (UnimplementedHelloWorldServer) Ping(context.Context, *PingRequest) (*PongR
 }
 func (UnimplementedHelloWorldServer) CommonName(context.Context, *CommonNameRequest) (*CommonNameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CommonName not implemented")
+}
+func (UnimplementedHelloWorldServer) Panic(context.Context, *PanicRequest) (*PanicResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Panic not implemented")
 }
 func (UnimplementedHelloWorldServer) mustEmbedUnimplementedHelloWorldServer() {}
 
@@ -125,6 +140,24 @@ func _HelloWorld_CommonName_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HelloWorld_Panic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PanicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelloWorldServer).Panic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HelloWorld_Panic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelloWorldServer).Panic(ctx, req.(*PanicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HelloWorld_ServiceDesc is the grpc.ServiceDesc for HelloWorld service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -139,6 +172,10 @@ var HelloWorld_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CommonName",
 			Handler:    _HelloWorld_CommonName_Handler,
+		},
+		{
+			MethodName: "Panic",
+			Handler:    _HelloWorld_Panic_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

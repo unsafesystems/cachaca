@@ -27,3 +27,7 @@ func (s *Service) CommonName(ctx context.Context, _ *CommonNameRequest) (*Common
 
 	return &CommonNameResponse{CommonName: commonName}, nil
 }
+
+func (s *Service) Panic(_ context.Context, _ *PanicRequest) (*PanicResponse, error) {
+	panic("this is a panic")
+}

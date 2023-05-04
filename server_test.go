@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestServer_DisableGrpcWeb(t *testing.T) {
@@ -30,6 +31,12 @@ func TestServer_FaultyOption(t *testing.T) {
 		return fmt.Errorf("error")
 	})
 	assert.NotNil(t, err)
+}
+
+func TestServer_ReadTimeout(t *testing.T) {
+	s, err := NewServer(WithReadTimeout(time.Second))
+	assert.Nil(t, err)
+	assert.Equal(t, time.Second, s.readTimeout)
 }
 
 func TestServer(t *testing.T) {

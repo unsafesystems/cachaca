@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthenticationKey struct{}

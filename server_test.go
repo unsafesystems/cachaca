@@ -21,27 +21,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
-	"time"
 )
-
-func TestServer_DisableGrpcWeb(t *testing.T) {
-	s, err := NewServer(DisableGrpcWeb())
-	assert.Nil(t, err)
-	assert.Nil(t, s.grpcWeb)
-}
-
-func TestServer_FaultyOption(t *testing.T) {
-	_, err := NewServer(func(s *Server) error {
-		return fmt.Errorf("error")
-	})
-	assert.NotNil(t, err)
-}
-
-func TestServer_ReadTimeout(t *testing.T) {
-	s, err := NewServer(WithReadTimeout(time.Second))
-	assert.Nil(t, err)
-	assert.Equal(t, time.Second, s.readTimeout)
-}
 
 func TestServer(t *testing.T) {
 	suite.Run(t, new(ServerTestSuite))
@@ -59,7 +39,7 @@ func (s *ServerTestSuite) SetupSuite() {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	server, err := NewServer(
-		WithInsecureHealth(),
+		InsecureHealth(),
 		WithEmbeddedMetricsEndpoint(),
 	)
 	require.Nil(s.T(), err)

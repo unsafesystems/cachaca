@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.9.0
-	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/golang/protobuf v1.5.3
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/improbable-eng/grpc-web v0.15.0

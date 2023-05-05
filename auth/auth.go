@@ -22,7 +22,7 @@ type Authorizer interface {
 
 type AuthenticationKey struct{}
 
-func GetCreds[T any](ctx any) (*Credentials, bool) {
+func GetCreds[T any](ctx any) (*T, bool) {
 	switch ctx := ctx.(type) {
 	case *gin.Context:
 		creds, ok := ctx.Get(ginKey)
@@ -31,11 +31,11 @@ func GetCreds[T any](ctx any) (*Credentials, bool) {
 			return nil, ok
 		}
 
-		authentication, ok := creds.(*Credentials)
+		authentication, ok := creds.(*T)
 
 		return authentication, ok
 	case context.Context:
-		creds, ok := ctx.Value(AuthenticationKey{}).(*Credentials)
+		creds, ok := ctx.Value(AuthenticationKey{}).(*T)
 
 		return creds, ok
 	default:
@@ -43,7 +43,7 @@ func GetCreds[T any](ctx any) (*Credentials, bool) {
 	}
 }
 
-func WithCreds(ctx any, creds *Credentials) context.Context {
+func WithCreds[T any](ctx any, creds *T) context.Context {
 	switch ctx := ctx.(type) {
 	case *gin.Context:
 		ctx.Set(ginKey, creds)

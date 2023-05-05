@@ -18,7 +18,7 @@ func (s *Service) Ping(_ context.Context, _ *PingRequest) (*PongResponse, error)
 }
 
 func (s *Service) CommonName(ctx context.Context, _ *CommonNameRequest) (*CommonNameResponse, error) {
-	creds, ok := auth.GetCreds(ctx)
+	creds, ok := auth.GetCreds[auth.Credentials](ctx)
 	if !ok || len(creds.Certificates) < 1 {
 		return nil, status.Error(codes.Unauthenticated, "no credentials found")
 	}

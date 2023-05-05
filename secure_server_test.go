@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/unsafesystems/cachaca/internal/helloworld"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -58,6 +59,10 @@ func (s *SecureServerTestSuite) SetupSuite() {
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", 0))
 	require.Nil(s.T(), err)
+
+	server.GET("/ping", func(context *gin.Context) {
+		context.String(http.StatusOK, "pong")
+	})
 
 	go func() {
 		err := s.server.Serve(l)

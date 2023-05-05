@@ -3,132 +3,75 @@ package cachaca
 
 import (
 	"context"
-	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
+	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/unsafesystems/cachaca/auth"
-	"google.golang.org/grpc/codes"
+	"github.com/unsafesystems/cachaca/mocks"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	jwtKeyFunc = func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
+func TestNoAuthorizer(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	m := newMiddleware(nil)
+	assert.NotNil(t, m.authorizer)
+}
 
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte("secret"), nil
-	}
-	jwtToken = &jwt.RegisteredClaims{}
-)
+func TestHttpAuthorizerCalled(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	authorizer := mocks.NewAuthorizer(t)
+	authorizer.On("AuthorizeHTTP", ctx, &auth.Credentials{}).Return(nil).Once()
 
-func TestAuthentication_Unauthenticated(t *testing.T) {
-	middleware := NewAuthenticationMiddleware(jwtKeyFunc, jwtToken)
-	ctx := context.Background()
-	ctx, err := middleware.Middleware(ctx)
+	m := newMiddleware(authorizer)
+	m.ginMiddleware(ctx)
+	assert.False(t, ctx.IsAborted())
+}
+
+func TestHttpAuthorizerFail(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	authorizer := mocks.NewAuthorizer(t)
+	authorizer.On("AuthorizeHTTP", ctx, &auth.Credentials{}).Return(errors.New("test")).Once()
+
+	m := newMiddleware(authorizer)
+	m.ginMiddleware(ctx)
+	assert.True(t, ctx.IsAborted())
+	assert.Equal(t, http.StatusUnauthorized, ctx.Writer.Status())
+}
+
+func TestGrpcAuthorizerCalled(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), nil)
+	authorizer := mocks.NewAuthorizer(t)
+	authorizer.On("AuthorizeGrpc", ctx, &auth.Credentials{Headers: http.Header{}}).Return(ctx, nil).Once()
+
+	m := newMiddleware(authorizer)
+	ctx, err := m.grpcMiddleware(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, ctx, ctx)
+}
+
+func TestGrpcAuthorizerFail(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), nil)
+	authorizer := mocks.NewAuthorizer(t)
+	authorizer.On("AuthorizeGrpc", ctx, &auth.Credentials{Headers: http.Header{}}).Return(nil, errors.New("test")).Once()
+
+	m := newMiddleware(authorizer)
+	ctx, err := m.grpcMiddleware(ctx)
+	assert.Error(t, err)
 	assert.Nil(t, ctx)
-	require.NotNil(t, err)
-	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 }
 
-func TestAuthentication_TokenSuccess(t *testing.T) {
-	id := uuid.NewString()
-	audience := uuid.NewString()
+func TestGrpcMissingMetadata(t *testing.T) {
+	ctx := context.Background()
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    "",
-		Subject:   "",
-		Audience:  []string{audience},
-		ExpiresAt: nil,
-		NotBefore: nil,
-		IssuedAt:  nil,
-		ID:        id,
-	})
-	tokenString, err := token.SignedString([]byte("secret"))
-	require.Nil(t, err)
-
-	middleware := NewAuthenticationMiddleware(jwtKeyFunc, jwtToken)
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", tokenString)))
-
-	ctx, err = middleware.Middleware(ctx)
-	require.NotNil(t, ctx)
-	assert.Nil(t, err)
-
-	authContext, ok := ctx.Value(auth.AuthenticationKey{}).(auth.Authentication)
-	require.True(t, ok)
-
-	tokenClaims := authContext.Token.(*jwt.RegisteredClaims)
-	assert.Equal(t, id, tokenClaims.ID)
-	assert.Equal(t, audience, tokenClaims.Audience[0])
-}
-
-type CustomClaims struct {
-	jwt.RegisteredClaims
-	Role string `json:"role"`
-}
-
-func TestAuthentication_CustomToken(t *testing.T) {
-	id := uuid.NewString()
-	audience := uuid.NewString()
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomClaims{
-		jwt.RegisteredClaims{
-			Issuer:    "",
-			Subject:   "",
-			Audience:  []string{audience},
-			ExpiresAt: nil,
-			NotBefore: nil,
-			IssuedAt:  nil,
-			ID:        id,
-		},
-		"admin",
-	})
-	tokenString, err := token.SignedString([]byte("secret"))
-	require.Nil(t, err)
-
-	middleware := NewAuthenticationMiddleware(jwtKeyFunc, &CustomClaims{})
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", tokenString)))
-
-	ctx, err = middleware.Middleware(ctx)
-	require.NotNil(t, ctx)
-	assert.Nil(t, err)
-
-	authContext, ok := ctx.Value(auth.AuthenticationKey{}).(auth.Authentication)
-	require.True(t, ok)
-
-	tokenClaims := authContext.Token.(*CustomClaims)
-	assert.Equal(t, id, tokenClaims.ID)
-	assert.Equal(t, audience, tokenClaims.Audience[0])
-	assert.Equal(t, "admin", tokenClaims.Role)
-}
-
-func TestAuthentication_InvalidToken(t *testing.T) {
-	id := uuid.NewString()
-	audience := uuid.NewString()
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    "",
-		Subject:   "",
-		Audience:  []string{audience},
-		ExpiresAt: nil,
-		NotBefore: nil,
-		IssuedAt:  nil,
-		ID:        id,
-	})
-	tokenString, err := token.SignedString([]byte("secret123"))
-	require.Nil(t, err)
-
-	middleware := NewAuthenticationMiddleware(jwtKeyFunc, jwtToken)
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", tokenString)))
-
-	_, err = middleware.Middleware(ctx)
-	require.NotNil(t, err)
-	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	m := newMiddleware(nil)
+	ctx, err := m.grpcMiddleware(ctx)
+	assert.Error(t, err)
+	assert.Nil(t, ctx)
 }

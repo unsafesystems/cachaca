@@ -10,6 +10,9 @@ protoc:
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		internal/helloworld/helloworld.proto
 
+mockery:
+	mockery --dir auth --output mocks --name Authorizer
+
 test:
 	go test -v ./...
 

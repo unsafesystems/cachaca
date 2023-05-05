@@ -14,6 +14,11 @@ linters-settings:
   exhaustruct:
     exclude:
       - "http.Server"
+  varnamelen:
+    ignore-names:
+      - err
+      - ok
+      - md
 
 linters:
   enable-all: true

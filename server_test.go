@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +27,7 @@ import (
 func TestServer_DisableGrpcWeb(t *testing.T) {
 	s, err := NewServer(DisableGrpcWeb())
 	assert.Nil(t, err)
-	assert.Nil(t, s.grpcweb)
+	assert.Nil(t, s.grpcWeb)
 }
 
 func TestServer_FaultyOption(t *testing.T) {
@@ -41,23 +41,6 @@ func TestServer_ReadTimeout(t *testing.T) {
 	s, err := NewServer(WithReadTimeout(time.Second))
 	assert.Nil(t, err)
 	assert.Equal(t, time.Second, s.readTimeout)
-}
-
-func TestServer_WithJwtKeyFunc(t *testing.T) {
-	fn := func(*jwt.Token) (interface{}, error) {
-		return "ok", nil
-	}
-
-	s, err := NewServer(WithJwtKeyFunc(fn))
-	assert.Nil(t, err)
-	v, _ := s.jwtKeyFunc(nil)
-	assert.Equal(t, "ok", v.(string)) // Testing for function equality doesn't work
-}
-
-func TestServer_WithJwtToken(t *testing.T) {
-	s, err := NewServer(WithJwtToken(jwt.RegisteredClaims{}))
-	assert.Nil(t, err)
-	assert.Equal(t, jwt.RegisteredClaims{}, s.jwtToken)
 }
 
 func TestServer(t *testing.T) {
@@ -84,6 +67,10 @@ func (s *ServerTestSuite) SetupSuite() {
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", 0))
 	require.Nil(s.T(), err)
+
+	server.GET("/ping", func(context *gin.Context) {
+		context.String(http.StatusOK, "pong")
+	})
 
 	go func() {
 		err := s.server.Serve(l)

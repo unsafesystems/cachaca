@@ -12,6 +12,7 @@ import (
 )
 
 func TestNopAuthorizer_Gin(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	creds := &auth.Credentials{}
 

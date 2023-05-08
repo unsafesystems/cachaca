@@ -21,7 +21,11 @@ func TestGin_Logger(t *testing.T) {
 }
 
 func TestGin_LogSwitch(t *testing.T) {
+	buf := &bytes.Buffer{}
+	log := zerolog.New(buf)
+
 	testCdata := &ginHands{
+		logger:     &log,
 		path:       "/post",
 		latency:    1 * time.Second,
 		method:     "GET",

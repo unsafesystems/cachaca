@@ -67,3 +67,17 @@ func (*embeddedMetricsEndpoint) Apply(s *Server) error {
 func WithEmbeddedMetricsEndpoint() Option {
 	return &embeddedMetricsEndpoint{}
 }
+
+type ginMiddleware struct {
+	middleware gin.HandlerFunc
+}
+
+func (opt *ginMiddleware) Apply(s *Server) error {
+	s.Use(opt.middleware)
+
+	return nil
+}
+
+func WithGinMiddleware(middleware gin.HandlerFunc) Option {
+	return &ginMiddleware{middleware: middleware}
+}

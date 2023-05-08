@@ -24,6 +24,7 @@ func TestAuth(t *testing.T) {
 }
 
 func TestGinAuth(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 
 	creds, ok := GetCreds[Credentials](ctx)

@@ -19,75 +19,80 @@ const (
 	cookiePrefix = "cachaca"
 )
 
-type (
-	ErrorHandler         func(ctx *gin.Context, errorType string, errorDesc string, state string)
-	CodeExchangeCallback func(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims],
-		userInfo *oidc.UserInfo, rp rp.RelyingParty) (interface{}, error)
-)
-
-type RelyingParty struct {
-	rp.RelyingParty
-	name string
+type Credentials struct {
+	// tokens *oidc.Tokens[*oidc.IDTokenClaims]
 }
 
-func NewRelyingParty(name string, relyingParty rp.RelyingParty) RelyingParty {
-	return RelyingParty{
-		RelyingParty: relyingParty,
-		name:         name,
-	}
+type Option interface {
+	apply(*Authorizer)
 }
 
-func DefaultCodeExchangeCallback(_ context.Context, _ *oidc.Tokens[*oidc.IDTokenClaims],
-	userInfo *oidc.UserInfo, _ rp.RelyingParty,
-) (interface{}, error) {
-	return userInfo, nil
-}
+type TokenCallback func(tokens *oidc.Tokens[*oidc.IDTokenClaims], userInfo *oidc.UserInfo) (interface{}, error)
 
 type Authorizer struct {
-	loginURL           string
-	callbackURL        string
-	defaultRedirectURL string
-	errorHandler       ErrorHandler
-	provider           map[string]rp.RelyingParty
-	signer             jose.Signer
-	callback           CodeExchangeCallback
-	signingKey         *jose.SigningKey
+	loginURL      string
+	callbackURL   string
+	logoutURL     string
+	errorURL      string
+	successURL    string
+	storage       Storage
+	provider      map[string]rp.RelyingParty
+	signer        jose.Signer
+	signingKey    *jose.SigningKey
+	tokenCallback TokenCallback
 }
 
-func NewAuthorizer(signingKey *jose.SigningKey, rps ...RelyingParty) *Authorizer {
-	if len(rps) == 0 {
-		panic("no relying parties provided")
-	}
+type emptyClaims struct{}
 
+func NewAuthorizer(signingKey *jose.SigningKey, opts ...Option) *Authorizer {
 	signer, err := jose.NewSigner(*signingKey, nil)
 	if err != nil {
 		panic(err)
 	}
 
 	authorizer := &Authorizer{
-		loginURL:           "/oidc/login",
-		callbackURL:        "/oidc/authorize",
-		defaultRedirectURL: "/",
-		provider:           make(map[string]rp.RelyingParty),
-		callback:           DefaultCodeExchangeCallback,
-		signer:             signer,
-		signingKey:         signingKey,
+		loginURL:    "/oidc/login",
+		callbackURL: "/oidc/authorize",
+		logoutURL:   "/oidc/logout",
+		errorURL:    "/oidc/error",
+		successURL:  "/oidc/success",
+		provider:    make(map[string]rp.RelyingParty),
+		signer:      signer,
+		signingKey:  signingKey,
+		tokenCallback: func(tokens *oidc.Tokens[*oidc.IDTokenClaims], userInfo *oidc.UserInfo) (interface{}, error) {
+			return emptyClaims{}, nil
+		},
 	}
 
-	authorizer.provider[""] = rps[0]
-
-	for _, relyingParty := range rps {
-		authorizer.provider[relyingParty.name] = relyingParty
+	for _, opt := range opts {
+		opt.apply(authorizer)
 	}
 
 	return authorizer
 }
 
+func (authorizer *Authorizer) RegisterRelyingParty(name string, relyingParty rp.RelyingParty) {
+	if _, ok := authorizer.provider[name]; ok {
+		panic(fmt.Sprintf("relying party %s already registered", name))
+	}
+
+	// A bit of a design question - but I think a "default" makes sense. The first relying party registered therefore
+	// will be accessible under its name - but also on the base path.
+	if len(authorizer.provider) == 0 {
+		authorizer.provider[""] = relyingParty
+	}
+
+	authorizer.provider[name] = relyingParty
+}
+
 func (authorizer *Authorizer) Apply(server *cachaca.Server) error {
 	server.GET(authorizer.loginURL, authorizer.loginHandler)
 	server.GET(fmt.Sprintf("%s/*provider", authorizer.loginURL), authorizer.loginHandler)
+
 	server.GET(authorizer.callbackURL, authorizer.callbackHandler)
 	server.GET(fmt.Sprintf("%s/*provider", authorizer.callbackURL), authorizer.callbackHandler)
+
+	server.GET(authorizer.logoutURL, authorizer.logoutHandler)
 
 	return nil
 }
@@ -108,7 +113,8 @@ func (authorizer *Authorizer) loginHandler(ctx *gin.Context) {
 	// remembering the page the user was on.
 	state, err := setStateCookie(ctx, authorizer.signer)
 	if err != nil {
-		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		ctx.JSON(-1, gin.H{"error": err.Error()})
 
 		return
 	}
@@ -127,12 +133,9 @@ func (authorizer *Authorizer) callbackHandler(ctx *gin.Context) {
 		return
 	}
 
-	if ctx.Param("error") != "" {
-		errorType := ctx.Param("error")
-		errorDesc := ctx.Param("error_description")
-		state := ctx.Param("state")
-
-		authorizer.errorHandler(ctx, errorType, errorDesc, state)
+	if ctx.Query("error") != "" {
+		query := ctx.Request.URL.Query().Encode()
+		ctx.Redirect(http.StatusFound, authorizer.errorURL+"?"+query)
 
 		return
 	}
@@ -151,21 +154,30 @@ func (authorizer *Authorizer) callbackHandler(ctx *gin.Context) {
 		return
 	}
 
-	claims, err := authorizer.callback(ctx, tokens, userInfo, provider)
+	claims, err := authorizer.tokenCallback(tokens, userInfo)
 	if err != nil {
 		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 
 		return
 	}
 
-	err = setSessionCookie(ctx, tokens, authorizer.signer, claims)
+	sessionKey, err := setSessionCookie(ctx, tokens, authorizer.signer, claims)
 	if err != nil {
 		_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 
 		return
 	}
 
-	redirectFromStateCookie(ctx, stateClaims, authorizer.defaultRedirectURL)
+	if authorizer.storage != nil {
+		err := authorizer.storage.Set(ctx, sessionKey, tokens)
+		if err != nil {
+			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
+
+			return
+		}
+	}
+
+	redirectFromStateCookie(ctx, stateClaims, authorizer.successURL)
 }
 
 func exchangeToken(ctx *gin.Context, provider rp.RelyingParty) (*oidc.Tokens[*oidc.IDTokenClaims],
@@ -194,6 +206,10 @@ func exchangeToken(ctx *gin.Context, provider rp.RelyingParty) (*oidc.Tokens[*oi
 	}
 
 	return tokens, userInfo, nil
+}
+
+func (authorizer *Authorizer) logoutHandler(_ *gin.Context) {
+	panic("implement me")
 }
 
 func (authorizer *Authorizer) AuthorizeGrpc(_ context.Context, _ *auth.Credentials) (context.Context, error) {

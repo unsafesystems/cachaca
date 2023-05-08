@@ -3,6 +3,7 @@ package oidc
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/unsafesystems/cachaca"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
+	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -54,7 +56,19 @@ func (s *OIDCTestSuite) SetupSuite() {
 
 	s.signingKey = &jose.SigningKey{Algorithm: jose.HS256, Key: []byte(uuid.NewString())}
 
-	server, err := cachaca.NewServer(NewAuthorizer(s.signingKey, NewRelyingParty("test", provider)))
+	authorizer := NewAuthorizer(s.signingKey)
+	authorizer.RegisterRelyingParty("test", provider)
+
+	server, err := cachaca.NewServer(
+		cachaca.WithGinMiddleware(func(c *gin.Context) {
+			c.Next()
+
+			if len(c.Errors) > 0 {
+				c.JSON(-1, gin.H{"error": c.Errors[0].Error()})
+			}
+		}),
+		authorizer,
+	)
 	require.Nil(s.T(), err)
 
 	go func() {
@@ -168,7 +182,7 @@ func (s *OIDCTestSuite) TestHappyPath() {
 		loc = res.Header.Get("Location")
 		uri, err = url.Parse(loc)
 		require.Nil(s.T(), err)
-		assert.Equal(s.T(), fmt.Sprintf("http://localhost:%d/", s.port), loc)
+		assert.Equal(s.T(), fmt.Sprintf("http://localhost:%d/oidc/success", s.port), loc)
 
 		// Validate the session cookie
 		cookies = res.Cookies()
@@ -188,4 +202,39 @@ func (s *OIDCTestSuite) TestHappyPath() {
 
 		require.Equal(s.T(), user.Subject, cl.Subject)
 	}
+}
+
+func (s *OIDCTestSuite) TestUnknownProvider() {
+	res, err := http.Get(fmt.Sprintf("http://localhost:%d/oidc/login/unknown", s.port))
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), http.StatusNotFound, res.StatusCode)
+
+	res, err = http.Get(fmt.Sprintf("http://localhost:%d/oidc/authorize/unknown", s.port))
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), http.StatusNotFound, res.StatusCode)
+}
+
+func (s *OIDCTestSuite) TestErrorHandler() {
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	res, err := client.Get(fmt.Sprintf("http://localhost:%d/oidc/authorize?error=test&error_description=description", s.port))
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), http.StatusFound, res.StatusCode)
+	loc := res.Header.Get("Location")
+	assert.Equal(s.T(), "/oidc/error?error=test&error_description=description", loc)
+}
+
+func (s *OIDCTestSuite) TestMissingStateCookie() {
+	// Because we don't use a cookie jar the cookie will be missing
+	res, err := http.Get(fmt.Sprintf("http://localhost:%d/oidc/login", s.port))
+	require.Nil(s.T(), err)
+
+	assert.Equal(s.T(), http.StatusUnauthorized, res.StatusCode)
+	body, err := io.ReadAll(res.Body)
+	require.Nil(s.T(), err)
+	assert.Contains(s.T(), string(body), "state cookie missing")
 }

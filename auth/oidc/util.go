@@ -50,10 +50,12 @@ func generateSecureKey(bitLength int) (string, error) {
 }
 
 func isHTTPS(ctx *gin.Context) bool {
-	return ctx.Request.URL != nil && ctx.Request.URL.Scheme == "https"
+	req := ctx.Request
+
+	return (req.URL.IsAbs() && req.URL.Scheme == "https") || req.TLS != nil
 }
 
-type StateCookieClaims struct {
+type StateClaims struct {
 	Redirect        string `json:"redirect,omitempty"`
 	ContinuationKey string `json:"continuationKey,omitempty"`
 }
@@ -90,7 +92,7 @@ func setStateCookie(ctx *gin.Context, signer jose.Signer) (string, error) {
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
 
-	claims := StateCookieClaims{
+	claims := StateClaims{
 		Redirect:        ctx.Query("redirect"),
 		ContinuationKey: ctx.Query("continuation_key"),
 	}
@@ -105,14 +107,14 @@ func setStateCookie(ctx *gin.Context, signer jose.Signer) (string, error) {
 	return state, nil
 }
 
-func validateStateCookie(ctx *gin.Context, signingKey *jose.SigningKey, state string) (*StateCookieClaims, error) {
+func validateStateCookie(ctx *gin.Context, signingKey *jose.SigningKey, state string) (*StateClaims, error) {
 	cookie, err := ctx.Cookie(stateCookieName(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("state cookie missing: %w", err)
 	}
 
 	stdClaims := new(jwt.Claims)
-	stateClaims := new(StateCookieClaims)
+	stateClaims := new(StateClaims)
 
 	err = parseJWT(cookie, signingKey, stdClaims, stateClaims)
 	if err != nil {
@@ -133,7 +135,7 @@ func validateStateCookie(ctx *gin.Context, signingKey *jose.SigningKey, state st
 	return stateClaims, nil
 }
 
-func redirectFromStateCookie(ctx *gin.Context, stateClaims *StateCookieClaims, defaultRedirectURL string) {
+func redirectFromStateCookie(ctx *gin.Context, stateClaims *StateClaims, defaultRedirectURL string) {
 	if stateClaims.Redirect != "" {
 		ctx.Redirect(http.StatusFound, stateClaims.Redirect)
 
@@ -161,12 +163,12 @@ func redirectFromStateCookie(ctx *gin.Context, stateClaims *StateCookieClaims, d
 
 func setSessionCookie(ctx *gin.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims],
 	signer jose.Signer, claims ...interface{},
-) error {
+) (string, error) {
 	// The OWASP and NIST recommendations suggest that session keys should be at least 128 bits in length to resist
 	// cryptographic attacks and provide an acceptable level of security. But 512 is also "only" 64 bytes...
 	sessionKey, err := generateSecureKey(SessionKeyBitLength)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Set the expiry to the expiry of the access token - or maximum of 1 hour - whatever is shorter
@@ -195,11 +197,11 @@ func setSessionCookie(ctx *gin.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]
 
 	token, err := builder.CompactSerialize()
 	if err != nil {
-		return fmt.Errorf("failed to generate session token: %w", err)
+		return "", fmt.Errorf("failed to generate session token: %w", err)
 	}
 
 	if len(token) >= MaxSessionKeyLength {
-		return ErrSessionTokenTooLong
+		return "", ErrSessionTokenTooLong
 	}
 
 	// __Host- prefix according to https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies for increased security
@@ -212,7 +214,7 @@ func setSessionCookie(ctx *gin.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]
 	ctx.SetCookie(cookieName, token, cookieExpiry, "", "", isHTTPS(ctx), true)
 	ctx.Header("Authorization", "Bearer "+token)
 
-	return nil
+	return sessionKey, nil
 }
 
 func generateJWT(signer jose.Signer, claims ...interface{}) (string, error) {

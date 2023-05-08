@@ -23,6 +23,7 @@ func TestNoAuthorizer(t *testing.T) {
 }
 
 func TestHttpAuthorizerCalled(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	authorizer := mocks.NewAuthorizer(t)
@@ -34,6 +35,7 @@ func TestHttpAuthorizerCalled(t *testing.T) {
 }
 
 func TestHttpAuthorizerFail(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	authorizer := mocks.NewAuthorizer(t)

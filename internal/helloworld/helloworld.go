@@ -18,15 +18,12 @@ func (s *Service) Ping(_ context.Context, _ *PingRequest) (*PongResponse, error)
 }
 
 func (s *Service) CommonName(ctx context.Context, _ *CommonNameRequest) (*CommonNameResponse, error) {
-	creds, ok := auth.GetCreds(ctx)
-	if !ok || len(creds.Certificates) < 1 {
+	commonName, ok := auth.GetCreds[string](ctx)
+	if !ok || commonName == nil {
 		return nil, status.Error(codes.Unauthenticated, "no credentials found")
 	}
 
-	cert := creds.Certificates[0]
-	commonName := cert.Subject.CommonName
-
-	return &CommonNameResponse{CommonName: commonName}, nil
+	return &CommonNameResponse{CommonName: *commonName}, nil
 }
 
 func (s *Service) Panic(_ context.Context, _ *PanicRequest) (*PanicResponse, error) {

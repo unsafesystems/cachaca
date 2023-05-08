@@ -10,10 +10,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
-	"github.com/unsafesystems/cachaca/internal/helloworld"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"io"
 	"math/big"
 	"net"
@@ -21,13 +19,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/unsafesystems/cachaca/auth"
+	"github.com/unsafesystems/cachaca/internal/helloworld"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
 func TestSecureServer(t *testing.T) {
@@ -49,7 +52,7 @@ func (s *SecureServerTestSuite) SetupSuite() {
 	certs := getCertificates(s.T())
 
 	server, err := NewServer(
-		WithMTLSConfig(certs.caPool, certs.serverCert),
+		NewAuthorizer(certs.caPool, []tls.Certificate{*certs.serverCert}),
 	)
 	require.Nil(s.T(), err)
 
@@ -58,6 +61,10 @@ func (s *SecureServerTestSuite) SetupSuite() {
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", 0))
 	require.Nil(s.T(), err)
+
+	server.GET("/ping", func(context *gin.Context) {
+		context.String(http.StatusOK, "pong")
+	})
 
 	go func() {
 		err := s.server.Serve(l)
@@ -278,4 +285,56 @@ func pemFromBytes(certBytes []byte, certPrivKey *rsa.PrivateKey) (*bytes.Buffer,
 	})
 
 	return certPEM, certPrivKeyPEM
+}
+
+var ErrMissingClientCertificates = errors.New("no client certificates provided")
+
+type Authorizer struct {
+	Pool         *x509.CertPool
+	Certificates []tls.Certificate
+}
+
+type Credentials struct {
+	Certificates []*x509.Certificate
+}
+
+func NewAuthorizer(pool *x509.CertPool, serverCertificates []tls.Certificate) *Authorizer {
+	return &Authorizer{
+		Pool:         pool,
+		Certificates: serverCertificates,
+	}
+}
+
+func (authorizer *Authorizer) Apply(server *Server) error {
+	server.Authorizer = authorizer
+	server.TLSConfig = &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    authorizer.Pool,
+		Certificates: authorizer.Certificates,
+	}
+
+	return nil
+}
+
+func (authorizer *Authorizer) AuthorizeGrpc(ctx context.Context, creds *auth.Credentials) (context.Context, error) {
+	if creds == nil || len(creds.Certificates) == 0 {
+		return nil, ErrMissingClientCertificates
+	}
+
+	commonName := creds.Certificates[0].Subject.CommonName
+
+	return auth.WithCreds(ctx, &commonName), nil
+}
+
+func (authorizer *Authorizer) AuthorizeHTTP(ctx *gin.Context, creds *auth.Credentials) error {
+	if creds == nil || len(creds.Certificates) == 0 {
+		return ErrMissingClientCertificates
+	}
+
+	commonName := creds.Certificates[0].Subject.CommonName
+
+	auth.WithCreds(ctx, &commonName)
+
+	return nil
 }

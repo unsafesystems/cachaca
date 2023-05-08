@@ -58,6 +58,8 @@ func NewServer(opts ...Option) (*Server, error) {
 		ReadTimeout:     defaultReadTimeout,
 		InsecureHealth:  false,
 	}
+	server.Use(logger.NewGinLogger())
+	server.Use(gin.Recovery())
 
 	// First apply the options to the server - afterward we will only configure what was not configured before
 	for _, opt := range opts {
@@ -68,10 +70,6 @@ func NewServer(opts ...Option) (*Server, error) {
 
 	// Middleware to authenticate requests (both grpc and http)
 	middleware := newMiddleware(server.Authorizer)
-
-	// Prepare the gin server with middlewares
-	server.Use(logger.NewGinLogger())
-	server.Use(gin.Recovery())
 	server.Use(middleware.ginMiddleware)
 
 	if server.Grpc == nil {

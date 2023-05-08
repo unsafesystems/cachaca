@@ -19,6 +19,9 @@ linters-settings:
       - err
       - ok
       - md
+  gomoddirectives:
+    list:
+      - "github.com/oauth2-proxy/mockoidc"
 
 linters:
   enable-all: true
@@ -38,3 +41,4 @@ linters:
     - paralleltest
     - exhaustruct # Defaults are there for a reason...
     - gci # can be enabled after this is fixed: https://github.com/golangci/golangci-lint/issues/1490
+    - gomoddirectives # Couldn't figure out how to allow the mockoidc import

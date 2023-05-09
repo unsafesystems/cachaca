@@ -1,4 +1,4 @@
-//nolint
+// nolint
 package oidc
 
 import (
@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 	"golang.org/x/oauth2"
+	"os"
 	"testing"
 	"time"
 )
@@ -30,9 +31,14 @@ func (s *StorageTestSuite) SetupSuite() {
 	// In-Memory storage
 	s.storage = append(s.storage, NewMemoryStorage())
 
+	redisStr := "127.0.0.1:6379"
+	if e := os.Getenv("GITHUB_ACTIONS"); e != "" {
+		redisStr = "redis:6397"
+	}
+
 	// Redis storage
 	client, err := rueidis.NewClient(rueidis.ClientOption{
-		InitAddress: []string{"127.0.0.1:6379"},
+		InitAddress: []string{redisStr},
 	})
 	require.NoError(s.T(), err)
 	s.storage = append(s.storage, NewRedisStorage(client, time.Minute))

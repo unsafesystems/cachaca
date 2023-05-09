@@ -62,17 +62,33 @@ func WithSuccessURL(url string) Option {
 }
 
 type TokenCallBackOptions struct {
-	tokenCallback TokenCallback
+	tokenCallback SessionCallbackFunc
 }
 
 func (o *TokenCallBackOptions) apply(authorizer *Authorizer) {
 	if o.tokenCallback != nil {
-		authorizer.tokenCallback = o.tokenCallback
+		authorizer.sessionCallback = o.tokenCallback
 	}
 }
 
-func WithTokenCallback(tokenCallback TokenCallback) Option {
+func WithTokenCallback(tokenCallback SessionCallbackFunc) Option {
 	return &TokenCallBackOptions{
 		tokenCallback: tokenCallback,
+	}
+}
+
+type StorageOptions struct {
+	storage Storage
+}
+
+func (o *StorageOptions) apply(authorizer *Authorizer) {
+	if o.storage != nil {
+		authorizer.storage = o.storage
+	}
+}
+
+func WithStorage(storage Storage) Option {
+	return &StorageOptions{
+		storage: storage,
 	}
 }

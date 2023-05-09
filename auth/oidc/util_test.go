@@ -3,16 +3,15 @@ package oidc
 
 import (
 	"encoding/base64"
+	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 )
-
-func TestSnakeCase(t *testing.T) {
-	assert.Equal(t, "snake_case", toSnakeCase("SnakeCase"))
-	assert.Equal(t, "snake_case", toSnakeCase("Snake Case"))
-}
 
 func TestSecureKey(t *testing.T) {
 	key, err := generateSecureKey(1)
@@ -76,4 +75,32 @@ func TestParseJWT_ParsingFailed(t *testing.T) {
 	err := parseJWT(token, signingKey, claims)
 	assert.Error(t, err)
 	assert.Equal(t, "failed to parse JWT: invalid character '\\'' after object key:value pair", err.Error())
+}
+
+func TestRedirectFromCookie(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = &http.Request{URL: &url.URL{}}
+
+	s := &state{}
+	s.redirect(ctx, "http://www.example.com")
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "http://www.example.com", rec.Header().Get("Location"))
+
+	rec = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(rec)
+	ctx.Request = &http.Request{URL: &url.URL{}}
+	s = &state{Redirect: "http://www.example2.com"}
+	s.redirect(ctx, "http://www.example.com")
+	assert.Equal(t, http.StatusOK, rec.Code) // Why OK???
+	assert.Equal(t, "http://www.example2.com", rec.Header().Get("Location"))
+
+	rec = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(rec)
+	ctx.Request = &http.Request{URL: &url.URL{}}
+	s = &state{Data: "value"}
+	s.redirect(ctx, "http://www.example.com")
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "{\"data\":\"value\"}", rec.Body.String())
 }

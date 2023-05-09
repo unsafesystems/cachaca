@@ -3,6 +3,9 @@ package cachaca
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -30,4 +33,17 @@ func TestServer_ReadTimeout(t *testing.T) {
 	s, err := NewServer(WithReadTimeout(time.Second))
 	assert.Nil(t, err)
 	assert.Equal(t, time.Second, s.ReadTimeout)
+}
+
+func TestServer_Middleware(t *testing.T) {
+	handler := func(ctx *gin.Context) {}
+	s, err := NewServer(WithGinMiddleware(handler))
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(s.Engine.Handlers))
+
+	// First two middlewares are panic and logging middleware, last one is the authorizer
+	assert.Equal(t,
+		runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name(),
+		runtime.FuncForPC(reflect.ValueOf(s.Engine.Handlers[2]).Pointer()).Name(),
+	)
 }

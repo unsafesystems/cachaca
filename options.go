@@ -78,6 +78,8 @@ func (opt *ginMiddleware) Apply(s *Server) error {
 	return nil
 }
 
+// WithGinMiddleware adds a gin middleware to the server. This is necessary to achieve the correct ordering of
+// middlewares as the ordering has a direct impact on the functionality of the middlewares.
 func WithGinMiddleware(middleware gin.HandlerFunc) Option {
 	return &ginMiddleware{middleware: middleware}
 }

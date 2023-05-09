@@ -33,7 +33,8 @@ const (
 	defaultReadTimeout = 10 * time.Second
 )
 
-// Server is an opinionated implementation of server providing grpc, grpc-web and rest/http endpoints on a single port.
+// Server is an opinionated server implementation multiplexing grpc, grpc-web and rest/http on a single port.
+// It embeds gin.Engine and the grpc.ServiceRegistrar interface to directly interact with the server.
 type Server struct {
 	*gin.Engine
 	TLSConfig       *tls.Config

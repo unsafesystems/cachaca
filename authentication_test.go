@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
-	"github.com/unsafesystems/cachaca/auth"
 	"github.com/unsafesystems/cachaca/mocks"
 	"google.golang.org/grpc/metadata"
 	"net/http"
@@ -27,7 +26,7 @@ func TestHttpAuthorizerCalled(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	authorizer := mocks.NewAuthorizer(t)
-	authorizer.On("AuthorizeHTTP", ctx, &auth.Credentials{}).Return(nil).Once()
+	authorizer.On("AuthorizeHTTP", ctx).Return(nil).Once()
 
 	m := newMiddleware(authorizer)
 	m.ginMiddleware(ctx)
@@ -39,7 +38,7 @@ func TestHttpAuthorizerFail(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	authorizer := mocks.NewAuthorizer(t)
-	authorizer.On("AuthorizeHTTP", ctx, &auth.Credentials{}).Return(errors.New("test")).Once()
+	authorizer.On("AuthorizeHTTP", ctx).Return(errors.New("test")).Once()
 
 	m := newMiddleware(authorizer)
 	m.ginMiddleware(ctx)
@@ -50,7 +49,7 @@ func TestHttpAuthorizerFail(t *testing.T) {
 func TestGrpcAuthorizerCalled(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), nil)
 	authorizer := mocks.NewAuthorizer(t)
-	authorizer.On("AuthorizeGrpc", ctx, &auth.Credentials{Headers: http.Header{}}).Return(ctx, nil).Once()
+	authorizer.On("AuthorizeGrpc", ctx).Return(ctx, nil).Once()
 
 	m := newMiddleware(authorizer)
 	ctx, err := m.grpcMiddleware(ctx)
@@ -61,18 +60,9 @@ func TestGrpcAuthorizerCalled(t *testing.T) {
 func TestGrpcAuthorizerFail(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), nil)
 	authorizer := mocks.NewAuthorizer(t)
-	authorizer.On("AuthorizeGrpc", ctx, &auth.Credentials{Headers: http.Header{}}).Return(nil, errors.New("test")).Once()
+	authorizer.On("AuthorizeGrpc", ctx).Return(nil, errors.New("test")).Once()
 
 	m := newMiddleware(authorizer)
-	ctx, err := m.grpcMiddleware(ctx)
-	assert.Error(t, err)
-	assert.Nil(t, ctx)
-}
-
-func TestGrpcMissingMetadata(t *testing.T) {
-	ctx := context.Background()
-
-	m := newMiddleware(nil)
 	ctx, err := m.grpcMiddleware(ctx)
 	assert.Error(t, err)
 	assert.Nil(t, ctx)

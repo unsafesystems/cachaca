@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/peer"
 	"io"
 	"math/big"
 	"net"
@@ -317,24 +318,28 @@ func (authorizer *Authorizer) Apply(server *Server) error {
 	return nil
 }
 
-func (authorizer *Authorizer) AuthorizeGrpc(ctx context.Context, creds *auth.Credentials) (context.Context, error) {
-	if creds == nil || len(creds.Certificates) == 0 {
-		return nil, ErrMissingClientCertificates
+// AuthorizeGrpc serves as the middleware to authorize the incoming gRPC requests. If no client certificates are
+// provided, the request will be rejected. Provided certificates are injected into the context by the middleware.
+func (authorizer *Authorizer) AuthorizeGrpc(ctx context.Context) (context.Context, error) {
+	p, ok := peer.FromContext(ctx)
+	if ok {
+		if mtls, ok := p.AuthInfo.(credentials.TLSInfo); ok {
+			return auth.WithCredentials(ctx, &mtls.State.PeerCertificates[0].Subject.CommonName), nil
+		}
 	}
 
-	commonName := creds.Certificates[0].Subject.CommonName
-
-	return auth.WithCreds(ctx, &commonName), nil
+	return nil, ErrMissingClientCertificates
 }
 
-func (authorizer *Authorizer) AuthorizeHTTP(ctx *gin.Context, creds *auth.Credentials) error {
-	if creds == nil || len(creds.Certificates) == 0 {
-		return ErrMissingClientCertificates
+// AuthorizeHTTP serves as the middleware to authorize the incoming HTTP requests. If no client certificates are
+// provided, the request will be rejected. Provided certificates are injected into the context by the middleware.
+func (authorizer *Authorizer) AuthorizeHTTP(ctx *gin.Context) error {
+	tlsConfig := ctx.Request.TLS
+	if tlsConfig != nil {
+		auth.WithCredentials(ctx, &tlsConfig.PeerCertificates[0].Subject.CommonName)
+
+		return nil
 	}
 
-	commonName := creds.Certificates[0].Subject.CommonName
-
-	auth.WithCreds(ctx, &commonName)
-
-	return nil
+	return ErrMissingClientCertificates
 }

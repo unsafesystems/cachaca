@@ -5,18 +5,19 @@ go 1.20
 require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-jose/go-jose/v3 v3.0.0
-	github.com/gobeam/stringy v0.0.6
 	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/oauth2-proxy/mockoidc v0.0.0-20220308204021-b9169deeb282
 	github.com/prometheus/client_golang v1.15.1
+	github.com/redis/rueidis v1.0.2
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.2
 	github.com/zitadel/oidc/v2 v2.6.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.41.1
 	golang.org/x/net v0.10.0
+	golang.org/x/oauth2 v0.7.0
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
 )
@@ -63,7 +64,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.15.1 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

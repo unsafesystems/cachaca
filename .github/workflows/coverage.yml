@@ -29,3 +29,5 @@ jobs:
         run: go test --cover -covermode=set -coverprofile=coverage.txt -coverpkg=$(go list ./...) ./...
       - name: upload coverage
         uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.txt

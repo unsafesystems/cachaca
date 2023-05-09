@@ -26,8 +26,7 @@ jobs:
           go-version: 1.20.x
       - uses: actions/checkout@v3
       - name: run coverage
-        run: go test --cover -covermode=set -coverprofile=coverage.txt -coverpkg=$(go list ./...) ./...
+        run: |
+          go test --cover -covermode=set -coverprofile=coverage.cov -coverpkg= ./...
       - name: upload coverage
         uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.txt

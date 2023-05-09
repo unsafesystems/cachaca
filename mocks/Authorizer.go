@@ -5,10 +5,7 @@ package mocks
 import (
 	context "context"
 
-	auth "github.com/unsafesystems/cachaca/auth"
-
 	gin "github.com/gin-gonic/gin"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -17,25 +14,25 @@ type Authorizer struct {
 	mock.Mock
 }
 
-// AuthorizeGrpc provides a mock function with given fields: ctx, creds
-func (_m *Authorizer) AuthorizeGrpc(ctx context.Context, creds *auth.Credentials) (context.Context, error) {
-	ret := _m.Called(ctx, creds)
+// AuthorizeGrpc provides a mock function with given fields: ctx
+func (_m *Authorizer) AuthorizeGrpc(ctx context.Context) (context.Context, error) {
+	ret := _m.Called(ctx)
 
 	var r0 context.Context
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *auth.Credentials) (context.Context, error)); ok {
-		return rf(ctx, creds)
+	if rf, ok := ret.Get(0).(func(context.Context) (context.Context, error)); ok {
+		return rf(ctx)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *auth.Credentials) context.Context); ok {
-		r0 = rf(ctx, creds)
+	if rf, ok := ret.Get(0).(func(context.Context) context.Context); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(context.Context)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *auth.Credentials) error); ok {
-		r1 = rf(ctx, creds)
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -43,13 +40,13 @@ func (_m *Authorizer) AuthorizeGrpc(ctx context.Context, creds *auth.Credentials
 	return r0, r1
 }
 
-// AuthorizeHttp provides a mock function with given fields: ctx, creds
-func (_m *Authorizer) AuthorizeHTTP(ctx *gin.Context, creds *auth.Credentials) error {
-	ret := _m.Called(ctx, creds)
+// AuthorizeHTTP provides a mock function with given fields: ctx
+func (_m *Authorizer) AuthorizeHTTP(ctx *gin.Context) error {
+	ret := _m.Called(ctx)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, *auth.Credentials) error); ok {
-		r0 = rf(ctx, creds)
+	if rf, ok := ret.Get(0).(func(*gin.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}

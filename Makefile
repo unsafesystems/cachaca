@@ -12,6 +12,7 @@ protoc:
 
 mockery:
 	mockery --dir auth --output mocks --name Authorizer
+	mockery --dir auth/oidc --output mocks --name Storage
 
 test:
 	go test -v ./...

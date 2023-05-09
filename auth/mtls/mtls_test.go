@@ -4,8 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,37 +33,47 @@ func TestApply(t *testing.T) {
 	assert.Equal(t, tls.VersionTLS12, int(server.TLSConfig.MinVersion))
 	assert.Equal(t, certs, server.TLSConfig.Certificates)
 
+	clientCerts := []*x509.Certificate{{}}
+
 	{
 		// GRPC validation - missing client certificates
 		ctx := metadata.NewIncomingContext(context.Background(), nil)
-		creds := &auth.Credentials{}
-		_, err = authorizer.AuthorizeGrpc(ctx, creds)
+		_, err = authorizer.AuthorizeGrpc(ctx)
 		assert.Error(t, err)
 
 		// GRPC validation - certificates are present
 		ctx = metadata.NewIncomingContext(context.Background(), nil)
-		creds = &auth.Credentials{Certificates: []*x509.Certificate{{}}}
-		ctx, err = authorizer.AuthorizeGrpc(ctx, creds)
+		ctx = peer.NewContext(ctx, &peer.Peer{
+			AuthInfo: credentials.TLSInfo{
+				State: tls.ConnectionState{
+					PeerCertificates: clientCerts,
+				},
+			},
+		})
+		ctx, err = authorizer.AuthorizeGrpc(ctx)
 		assert.NoError(t, err)
-		res, ok := auth.GetCreds[Credentials](ctx)
+		res, ok := auth.GetCredentials[Credentials](ctx)
 		assert.True(t, ok)
-		assert.Equal(t, res, &Credentials{Certificates: creds.Certificates})
+		assert.Equal(t, res.Certificates, clientCerts)
 	}
 
 	{
 		// HTTP validation - missing client certificates
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		creds := &auth.Credentials{}
-		err = authorizer.AuthorizeHTTP(ctx, creds)
+		err = authorizer.AuthorizeHTTP(ctx)
 		assert.Error(t, err)
 
 		// HTTP validation - certificates are present
 		ctx, _ = gin.CreateTestContext(httptest.NewRecorder())
-		creds = &auth.Credentials{Certificates: []*x509.Certificate{{}}}
-		err = authorizer.AuthorizeHTTP(ctx, creds)
+		ctx.Request = &http.Request{
+			TLS: &tls.ConnectionState{
+				PeerCertificates: clientCerts,
+			},
+		}
+		err = authorizer.AuthorizeHTTP(ctx)
 		assert.NoError(t, err)
-		res, ok := auth.GetCreds[Credentials](ctx)
+		res, ok := auth.GetCredentials[Credentials](ctx)
 		assert.True(t, ok)
-		assert.Equal(t, res, &Credentials{Certificates: creds.Certificates})
+		assert.Equal(t, res.Certificates, clientCerts)
 	}
 }

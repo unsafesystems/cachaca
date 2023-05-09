@@ -1,34 +1,25 @@
 package oidc
 
 import (
+	"context"
 	"testing"
 
+	"github.com/go-jose/go-jose/v3"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 func TestURLOptions(t *testing.T) {
-	authorizer := &Authorizer{}
+	key := &jose.SigningKey{Algorithm: "HS256", Key: []byte("secret")}
 
-	opt := WithLoginURL("http://example.com/login")
-	opt.apply(authorizer)
-	assert.Equal(t, "http://example.com/login", authorizer.loginURL)
-
-	opt = WithLogoutURL("http://example.com/logout")
-	opt.apply(authorizer)
-	assert.Equal(t, "http://example.com/logout", authorizer.logoutURL)
-
-	opt = WithCallbackURL("http://example.com/redirect")
-	opt.apply(authorizer)
-	assert.Equal(t, "http://example.com/redirect", authorizer.callbackURL)
-
-	opt = WithErrorURL("http://example.com/error")
-	opt.apply(authorizer)
-	assert.Equal(t, "http://example.com/error", authorizer.errorURL)
-
-	opt = WithSuccessURL("http://example.com/success")
-	opt.apply(authorizer)
-	assert.Equal(t, "http://example.com/success", authorizer.successURL)
+	authorizer := NewAuthorizer(
+		key,
+		WithLoginURL("http://example.com/login"),
+		WithLogoutURL("http://example.com/logout"),
+		WithCallbackURL("http://example.com/redirect"),
+		WithErrorURL("http://example.com/error"),
+		WithSuccessURL("http://example.com/success"),
+	)
 
 	assert.Equal(t, "http://example.com/login", authorizer.loginURL)
 	assert.Equal(t, "http://example.com/logout", authorizer.logoutURL)
@@ -40,14 +31,14 @@ func TestURLOptions(t *testing.T) {
 func TestWithTokenCallback(t *testing.T) {
 	authorizer := &Authorizer{}
 
-	callback := func(tokens *oidc.Tokens[*oidc.IDTokenClaims], userInfo *oidc.UserInfo) (interface{}, error) {
+	callback := func(ctx context.Context, session *Session) (interface{}, error) {
 		return "test", nil
 	}
 
 	opt := WithTokenCallback(callback)
 	opt.apply(authorizer)
 
-	res, err := authorizer.tokenCallback(nil, nil)
+	res, err := authorizer.sessionCallback(nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "test", res)
 }

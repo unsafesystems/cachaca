@@ -20,4 +20,4 @@ coverage:
         if_ci_failed: error
 
 fixes:
-  - "::github.com/unsafesystems/cachaca/"
+  - "github.com/unsafesystems/cachaca/::"

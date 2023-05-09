@@ -1,7 +1,6 @@
 codecov:
   ci:
     - "github.com"
-  disable_default_path_fixes: true
 
 coverage:
   precision: 0         # how many decimal places to display in the UI: 0 <= value <= 4

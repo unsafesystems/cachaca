@@ -27,11 +27,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: run coverage
         run: |
-          go test --cover -covermode=set -coverprofile=coverage.txt -coverpkg=$(go list ./...) ./...
-          cp coverage.txt auth/coverage.txt
-          cp coverage.txt auth/mtls/coverage.txt
-          cp coverage.txt auth/nop/coverage.txt
-          cp coverage.txt auth/oidc/coverage.txt
-          cp coverage.txt internal/logger/coverage.txt
+          go test --cover -covermode=set -coverprofile=coverage.cov -coverpkg= ./...
       - name: upload coverage
         uses: codecov/codecov-action@v3

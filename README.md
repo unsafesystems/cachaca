@@ -167,6 +167,28 @@ Cachaca IS a session cookie provided by Cachaca.
 ```
 
 
+### State Cookie
+TODO: Read up on OWASP regarding Same-Site Cookie, Secure, etc.
+
+There are at least a theoretical reasons why we should encrypt the state cookie according to this [Stack Exchange discussion](https://security.stackexchange.com/a/140889):
+- **On principle:** Security people like to layer their security measures. If one fails, the other will still protect you.
+- **To protect the state value from the client (user-agent).** If there is malware sitting on your client, you don't want to expose the state value to it. It might get stolen. If the state value is encrypted, client software has no access to it, which is good.
+
+
+### Access Tokens and the Session Cookie
+[RFC 6749: OAuth 2.0 Section 1.4](https://datatracker.ietf.org/doc/html/rfc6749#section-1.4) defines Access Tokens
+as a string that usually is opaque to the client, meaning that in order to stay compatible with the OAuth 2.0
+implementation we should not use Access Tokens on their own as in contrary to e.g. JWTs we cannot validate access
+tokens.
+
+In order to keep Session Cookies and Access Tokens consistent we will enforce the following rules:
+- **Access Tokens** are expected to be received in the Authorization header
+- **Sessions** are expected to be received via Cookies
+
+Session IDs - and therefore the session cookie value - should be generated in accordance with the recommendations of the
+[OWASP Session Management Cheatsheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
+
+
 ### Access Token Introspection
 In the case of Mobile (Native) applications we no longer have the problem of inherent insecure storage of tokens such as
 in SPAs. Therefore, the process is much more straight forward than in the SPA case.

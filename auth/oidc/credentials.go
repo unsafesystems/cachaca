@@ -69,8 +69,6 @@ func (c *Credentials) Refresh(ctx context.Context) error {
 
 // GetProvider returns the Relying Party associated with these credentials. The Relying Party exposes an OAuth-enabled
 // http.Client that can be used to communicate with the Relying Party.
-//
-
 func (c *Credentials) GetProvider() rp.RelyingParty {
 	return c.provider
 }

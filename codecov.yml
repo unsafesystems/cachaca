@@ -25,7 +25,3 @@ coverage:
 
 fixes:
   - "github.com/unsafesystems/cachaca/::"
-
-ignore:
-  - ".github/workflows"
-  - ".github"

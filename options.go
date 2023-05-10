@@ -83,3 +83,17 @@ func (opt *ginMiddleware) Apply(s *Server) error {
 func WithGinMiddleware(middleware gin.HandlerFunc) Option {
 	return &ginMiddleware{middleware: middleware}
 }
+
+type serverReflection struct{}
+
+func (*serverReflection) Apply(s *Server) error {
+	s.ServerReflection = true
+
+	return nil
+}
+
+// WithServerReflection enables the gRPC reflection endpoint on the server according to
+// https://github.com/grpc/grpc-go/blob/master/Documentation/server-reflection-tutorial.md#enable-server-reflection
+func WithServerReflection() Option {
+	return &serverReflection{}
+}

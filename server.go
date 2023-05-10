@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/reflection"
+
 	"github.com/gin-gonic/gin"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -37,13 +39,14 @@ const (
 // It embeds gin.Engine and the grpc.ServiceRegistrar interface to directly interact with the server.
 type Server struct {
 	*gin.Engine
-	TLSConfig       *tls.Config
-	GrpcWebDisabled bool
-	GrpcWeb         *grpcweb.WrappedGrpcServer
-	Grpc            *grpc.Server
-	HTTPHandler     http.Handler
-	Server          *http.Server
-	Healthcheck     *health.Server
+	TLSConfig        *tls.Config
+	GrpcWebDisabled  bool
+	GrpcWeb          *grpcweb.WrappedGrpcServer
+	Grpc             *grpc.Server
+	HTTPHandler      http.Handler
+	Server           *http.Server
+	Healthcheck      *health.Server
+	ServerReflection bool
 
 	ReadTimeout    time.Duration
 	InsecureHealth bool
@@ -89,6 +92,10 @@ func NewServer(opts ...Option) (*Server, error) {
 
 		server.Healthcheck = health.NewServer()
 		healthgrpc.RegisterHealthServer(server.Grpc, server.Healthcheck)
+	}
+
+	if server.ServerReflection {
+		reflection.Register(server.Grpc)
 	}
 
 	if server.GrpcWeb == nil && !server.GrpcWebDisabled {

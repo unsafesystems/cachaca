@@ -47,3 +47,9 @@ func TestServer_Middleware(t *testing.T) {
 		runtime.FuncForPC(reflect.ValueOf(s.Engine.Handlers[2]).Pointer()).Name(),
 	)
 }
+
+func TestServer_Reflection(t *testing.T) {
+	s, err := NewServer(WithServerReflection())
+	assert.NoError(t, err)
+	assert.True(t, s.ServerReflection)
+}

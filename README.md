@@ -28,6 +28,10 @@ Because cachaca is intended to simplify implementation of gRPC/gRPC-web/REST ser
 - [zitadel/oidc](https://pkg.go.dev/github.com/zitadel/oidc) for handling the OIDC authorization
 - [go-jose/go-jose](https://pkg.go.dev/gopkg.in/go-jose/go-jose.v2/jwt?utm_source=godoc) for handling JWTs
 
+Other interesting reads:
+- [Stop using JWT for sessions](http://cryto.net/~joepie91/blog/2016/06/13/stop-using-jwt-for-sessions/)
+- [Stop using JWT for sessions part 2](http://cryto.net/~joepie91/blog/2016/06/19/stop-using-jwt-for-sessions-part-2-why-your-solution-doesnt-work/http://cryto.net/~joepie91/blog/2016/06/19/stop-using-jwt-for-sessions-part-2-why-your-solution-doesnt-work/)
+
 
 ## Initializing the server
 A minimal example to run the server works is provided. As can be seen, the server object can be used directly in order
@@ -99,6 +103,10 @@ func (s *Service) CommonName(ctx context.Context, _ *CommonNameRequest) (*Common
 - [ ] Make server props private
 - [ ] Transparent Re-Auth as implemented might be insecure?
 - [ ] Chainable authentication mechanisms
+
+
+## Special Test Cases
+- [ ] Ensure we do not leak credentials (if token retrieved from cookie, ensure we don't send back a header)
 
 
 ## OIDC

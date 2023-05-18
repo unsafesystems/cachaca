@@ -14,7 +14,7 @@ import (
 
 	oauth2 "golang.org/x/oauth2"
 
-	oidc "github.com/zitadel/oidc/v2/pkg/oidc"
+	pkgoidc "github.com/zitadel/oidc/v2/pkg/oidc"
 
 	rp "github.com/zitadel/oidc/v2/pkg/client/rp"
 )
@@ -131,19 +131,19 @@ func (_m *Provider) IDTokenVerifier() rp.IDTokenVerifier {
 }
 
 // Introspect provides a mock function with given fields: ctx, accessToken
-func (_m *Provider) Introspect(ctx context.Context, accessToken string) (*oidc.IntrospectionResponse, error) {
+func (_m *Provider) Introspect(ctx context.Context, accessToken string) (*pkgoidc.IntrospectionResponse, error) {
 	ret := _m.Called(ctx, accessToken)
 
-	var r0 *oidc.IntrospectionResponse
+	var r0 *pkgoidc.IntrospectionResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*oidc.IntrospectionResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*pkgoidc.IntrospectionResponse, error)); ok {
 		return rf(ctx, accessToken)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *oidc.IntrospectionResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *pkgoidc.IntrospectionResponse); ok {
 		r0 = rf(ctx, accessToken)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*oidc.IntrospectionResponse)
+			r0 = ret.Get(0).(*pkgoidc.IntrospectionResponse)
 		}
 	}
 
@@ -256,25 +256,25 @@ func (_m *Provider) Signer() jose.Signer {
 	return r0
 }
 
-// UserInfo provides a mock function with given fields: ctx, token
-func (_m *Provider) UserInfo(ctx context.Context, token *oauth2.Token) (*oidc.UserInfo, error) {
-	ret := _m.Called(ctx, token)
+// UserInfo provides a mock function with given fields: ctx, subject, token
+func (_m *Provider) UserInfo(ctx context.Context, subject string, token *oauth2.Token) (*pkgoidc.UserInfo, error) {
+	ret := _m.Called(ctx, subject, token)
 
-	var r0 *oidc.UserInfo
+	var r0 *pkgoidc.UserInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *oauth2.Token) (*oidc.UserInfo, error)); ok {
-		return rf(ctx, token)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *oauth2.Token) (*pkgoidc.UserInfo, error)); ok {
+		return rf(ctx, subject, token)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *oauth2.Token) *oidc.UserInfo); ok {
-		r0 = rf(ctx, token)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *oauth2.Token) *pkgoidc.UserInfo); ok {
+		r0 = rf(ctx, subject, token)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*oidc.UserInfo)
+			r0 = ret.Get(0).(*pkgoidc.UserInfo)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *oauth2.Token) error); ok {
-		r1 = rf(ctx, token)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *oauth2.Token) error); ok {
+		r1 = rf(ctx, subject, token)
 	} else {
 		r1 = ret.Error(1)
 	}

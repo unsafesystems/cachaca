@@ -76,13 +76,13 @@ func TestAuthContext_Hydrate(t *testing.T) {
 		TokenType:   "Bearer",
 		AccessToken: accessToken,
 	}
-	provider.On("UserInfo", ctx, &authContext.Token).Return(nil, ErrBadRequest).Once()
+	provider.On("UserInfo", ctx, "", &authContext.Token).Return(nil, ErrBadRequest).Once()
 	err = authContext.Hydrate(ctx)
 	assert.Error(t, err)
 
 	// Let's populate the Access Token - the provider will be called - and we get a UserInfo
 	subject := uuid.NewString()
-	provider.On("UserInfo", ctx, &authContext.Token).Return(&oidc.UserInfo{
+	provider.On("UserInfo", ctx, "", &authContext.Token).Return(&oidc.UserInfo{
 		Subject: subject,
 	}, nil).Once()
 	err = authContext.Hydrate(ctx)

@@ -75,7 +75,7 @@ func (ac *AuthContext) LoadUserInfo(ctx context.Context) error {
 		return fmt.Errorf("missing access token: %w", ErrBadRequest)
 	}
 
-	userInfo, err := ac.provider.UserInfo(ctx, &ac.Token)
+	userInfo, err := ac.provider.UserInfo(ctx, ac.Subject, &ac.Token)
 	if err != nil {
 		return fmt.Errorf("failed to load user info: %w: %w", err, ErrBadRequest)
 	}

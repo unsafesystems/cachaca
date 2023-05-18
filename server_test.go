@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/unsafesystems/cachaca/internal/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -43,6 +44,9 @@ func (s *ServerTestSuite) SetupSuite() {
 		WithEmbeddedMetricsEndpoint(),
 	)
 	require.Nil(s.T(), err)
+
+	helloworld.RegisterHelloWorldServer(server, &helloworld.Service{})
+
 	s.server = server
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", 0))
@@ -163,4 +167,23 @@ func (s *ServerTestSuite) TestServer_GrpcWeb() {
 	response := new(healthpb.HealthCheckResponse)
 	parseGrpcWebResponse(s.T(), resp, response)
 	assert.Equal(s.T(), healthpb.HealthCheckResponse_SERVING, response.Status)
+}
+
+func (s *ServerTestSuite) TestServer_GrpcWebPing() {
+	payload := &helloworld.PingRequest{Message: "ping"}
+	buf := makeGrpcWebRequest(s.T(), payload)
+
+	fmt.Println("port", s.port)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d/github.unsafesystems.cachaca.HelloWorld/Ping", s.port), buf)
+	require.Nil(s.T(), err)
+
+	req.Header.Set("Content-Type", "application/grpc-web")
+
+	client := http.Client{}
+	resp, err := client.Do(req)
+	require.Nil(s.T(), err)
+
+	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
+	assert.Equal(s.T(), "application/grpc-web", resp.Header.Get("Content-Type"))
 }

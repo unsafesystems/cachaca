@@ -51,3 +51,10 @@ func TestUnknownContext(t *testing.T) {
 	assert.False(t, ok)
 	assert.Nil(t, val)
 }
+
+func TestTypeS(t *testing.T) {
+	assert.Equal(t, "cachaca:auth.Credentials", typeS[Credentials]())
+	assert.Equal(t, "cachaca:int", typeS[int]())
+	assert.Equal(t, "cachaca:string", typeS[string]())
+	assert.Equal(t, "cachaca:auth.AuthenticationKey", typeS[AuthenticationKey]())
+}

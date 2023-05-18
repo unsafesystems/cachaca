@@ -43,7 +43,6 @@ type Server struct {
 	GrpcWebDisabled  bool
 	GrpcWeb          *grpcweb.WrappedGrpcServer
 	Grpc             *grpc.Server
-	HTTPHandler      http.Handler
 	Server           *http.Server
 	Healthcheck      *health.Server
 	ServerReflection bool
@@ -99,11 +98,10 @@ func NewServer(opts ...Option) (*Server, error) {
 	}
 
 	if server.GrpcWeb == nil && !server.GrpcWebDisabled {
-		server.GrpcWeb = grpcweb.WrapServer(server.Grpc)
-	}
-
-	if server.HTTPHandler == nil {
-		server.HTTPHandler = server.Engine.Handler()
+		server.GrpcWeb = grpcweb.WrapServer(
+			server.Grpc,
+			grpcweb.WithCorsForRegisteredEndpointsOnly(false),
+		)
 	}
 
 	if server.Server == nil {
@@ -137,22 +135,20 @@ func (s *Server) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
 // ServeHTTP implements the http.Handler interface used internally to route requests to the correct handler. This
 // function handles the selection of the correct handler (grpc, grpc-web or http) based on the content-type header.
 func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodPost {
-		if strings.HasPrefix(req.Header.Get("content-type"), grpcWebContentType) && s.GrpcWeb != nil {
-			s.GrpcWeb.ServeHTTP(resp, req)
+	if s.GrpcWeb != nil && s.GrpcWeb.IsGrpcWebRequest(req) {
+		s.GrpcWeb.ServeHTTP(resp, req)
 
-			return
-		}
+		return
+	}
 
-		if strings.HasPrefix(req.Header.Get("content-type"), grpcContentType) {
-			s.Grpc.ServeHTTP(resp, req)
+	if req.Method == http.MethodPost && strings.HasPrefix(req.Header.Get("content-type"), grpcContentType) {
+		s.Grpc.ServeHTTP(resp, req)
 
-			return
-		}
+		return
 	}
 
 	// Fall through to HTTP
-	s.HTTPHandler.ServeHTTP(resp, req)
+	s.Engine.ServeHTTP(resp, req)
 }
 
 // SetServingStatus is called when need to reset the serving status of a service or insert a new service entry into

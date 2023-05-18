@@ -28,6 +28,10 @@ Because cachaca is intended to simplify implementation of gRPC/gRPC-web/REST ser
 - [zitadel/oidc](https://pkg.go.dev/github.com/zitadel/oidc) for handling the OIDC authorization
 - [go-jose/go-jose](https://pkg.go.dev/gopkg.in/go-jose/go-jose.v2/jwt?utm_source=godoc) for handling JWTs
 
+Other interesting reads:
+- [Stop using JWT for sessions](http://cryto.net/~joepie91/blog/2016/06/13/stop-using-jwt-for-sessions/)
+- [Stop using JWT for sessions part 2](http://cryto.net/~joepie91/blog/2016/06/19/stop-using-jwt-for-sessions-part-2-why-your-solution-doesnt-work/http://cryto.net/~joepie91/blog/2016/06/19/stop-using-jwt-for-sessions-part-2-why-your-solution-doesnt-work/)
+
 
 ## Initializing the server
 A minimal example to run the server works is provided. As can be seen, the server object can be used directly in order
@@ -88,4 +92,167 @@ func (s *Service) CommonName(ctx context.Context, _ *CommonNameRequest) (*Common
 
 	return &CommonNameResponse{CommonName: *commonName}, nil
 }
+```
+
+
+## TODOs
+- [ ] Setting cookies in gRPC-web: https://github.com/improbable-eng/grpc-web/issues/833
+- [ ] Support PKCE with OIDC
+- [ ] Adhere to the Listen, Run, Stop interface from rpcserve
+- [ ] Logger / Error pkg compatibility
+- [ ] Make server props private
+- [ ] Transparent Re-Auth as implemented might be insecure?
+- [ ] Chainable authentication mechanisms
+
+
+## Special Test Cases
+- [ ] Ensure we do not leak credentials (if token retrieved from cookie, ensure we don't send back a header)
+
+
+## OIDC
+The server provides an implementation to support deployments where OIDC is being used 
+
+Information and design decisions about the OIDC implementation are summarized below. They are largely based on the
+following documents - have a read - it's probably worth it:
+- [Best Practices - OAuth for Single Page Apps [curity.io]](https://curity.io/resources/learn/spa-best-practices/)
+- [OAuth 2.0 for Browser-Based Apps [ietf.org]](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps#section-6.2)
+- [Authorization Code Flow with Proof Key for Code Exchange [auth0.com]](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce)
+- [Proof Key for Code Exchange by OAuth Public Clients [ietf.org]](https://datatracker.ietf.org/doc/html/rfc7636)
+
+
+### BFF (Backend for Frontend)-style proxy for SPAs (Single Page Apps)
+The browser is a hostile place to execute code, and implementing security is a difficult area of SPA development.
+We therefore implement an adoption of the BFF (Backend for Frontend) pattern for SPAs according to the
+[IETF Draft "OAuth 2.0 for Browser-Based Apps" Section 6.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps#section-6.2).
+Access Tokens and Refresh Tokens are kept secured on the server while a traditional cookie based session is initialized
+with the browser. The Cookie can be a secure http-only implementation, further reducing the attack surface. 
+
+The Cachaca OIDC Authorizer has the ability to execute code and handle the full OAuth flow itself. This enables the 
+ability to keep the request to obtain an access token outside the JavaScript application. 
+
+The JavaScript code is loaded from a CDN or other hosting server (A). Cachaca will initialize the OAuth flow itself, by 
+redirecting the browser to the authorization endpoint (B). When the user is redirected back, the browser delivers the 
+authorization code that will be incercepted by Cachaca (C), where it can be exchanged for an access token at the token 
+endpoint (D) using its client secret and PKCE code verifier. Cachaca then keeps the access token and refresh token 
+stored internally, and creates a separate session with the browser-based app via a traditional browser cookie (E).
+
+When the JavaScript application in the browser wants to make a request to the User Application, requests are proxied
+through Cachaca (F), and Cachaca will make the request with the access token to the User Application (G), and forward
+the response (H) back to the browser.
+
+In this case, Cachaca IS considered a confidential client, and issued its own client secret. It will use the OAuth 2.0 
+Authorization Code grant with PKCE to initiate a request for an access token. The connection between the browser and 
+Cachaca IS a session cookie provided by Cachaca.
+
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐
+│             │  │             │  │             │  │              │
+│     CDN     │  │Authorization│  │    Token    │  │     User     │
+│             │  │  Endpoint   │  │  Endpoint   │  │ Application  │
+│             │  │             │  │             │  │              │
+└─────────────┘  └─────────────┘  └─────────────┘  └──────────────┘
+       ▲                ▲                ▲                  ▲
+       │                │                │                  │
+       │                │               (D)                (G)
+       │                │                │                  │
+       │                │                ▼                  │
+       │                │          ┌────────────────────────┴─────┐
+       │                │          │                              │
+      (A)              (B)         │           Cachaca            │
+       │                │          │     Authorizer / Library     │
+       │                │          │                              │
+       │                │          └────────┬──────────────────┬──┘
+       │                │             ▲     │            ▲     │
+       │                │             │     │            │     │
+       │                │            (C)   (E)          (F)   (H)
+       │                │             │     │            │     │
+       ▼                ▼             │     ▼            │     ▼
+┌─────────────────────────────────────┴──────────────────┴────────┐
+│                                                                 │
+│                           BROWSER                               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+
+### State Cookie
+TODO: Read up on OWASP regarding Same-Site Cookie, Secure, etc.
+
+There are at least a theoretical reasons why we should encrypt the state cookie according to this [Stack Exchange discussion](https://security.stackexchange.com/a/140889):
+- **On principle:** Security people like to layer their security measures. If one fails, the other will still protect you.
+- **To protect the state value from the client (user-agent).** If there is malware sitting on your client, you don't want to expose the state value to it. It might get stolen. If the state value is encrypted, client software has no access to it, which is good.
+
+
+### Access Tokens and the Session Cookie
+[RFC 6749: OAuth 2.0 Section 1.4](https://datatracker.ietf.org/doc/html/rfc6749#section-1.4) defines Access Tokens
+as a string that usually is opaque to the client, meaning that in order to stay compatible with the OAuth 2.0
+implementation we should not use Access Tokens on their own as in contrary to e.g. JWTs we cannot validate access
+tokens.
+
+In order to keep Session Cookies and Access Tokens consistent we will enforce the following rules:
+- **Access Tokens** are expected to be received in the Authorization header
+- **Sessions** are expected to be received via Cookies
+
+Session IDs - and therefore the session cookie value - should be generated in accordance with the recommendations of the
+[OWASP Session Management Cheatsheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
+
+
+### Access Token Introspection
+In the case of Mobile (Native) applications we no longer have the problem of inherent insecure storage of tokens such as
+in SPAs. Therefore, the process is much more straight forward than in the SPA case.
+
+We expect the native client to obtain a valid access token and refresh token using the OAuth 2.0 Authorization Code 
+grant with PKCE. Cachaca will introspect the access token using the Introspection Endpoint as defined by OIDC. A
+storage backend can temporarily store the introspection result to reduce the impact on performance and uptime the
+introspection process may have.
+
+Overview of the OAuth 2.0 Authorization Code grant with PKCE as we implemented it:
+```
+          ┌────────────────┐         ┌───────────────┐         ┌───────────────┐          ┌───────────────┐
+          │                │         │               │         │               │          │               │
+          │       APP      │         │  OIDC Server  │         │    Cachaca    │          │   User App    │
+          │                │         │               │         │               │          │               │
+          └────────┬───────┘         └───────┬───────┘         └───────┬───────┘          └───────┬───────┘
+                   │                         │                         │                          │
+  Initiate Login   │                         │                         │                          │
+──────────────────►│                         │                         │                          │
+                   │                         │                         │                          │
+                  ┌┼┐                        │                         │                          │
+ Generate         │┼┼──┐                     │                         │                          │
+    t = nonce     │┼│  │                     │                         │                          │
+  t_m = sha256(t) │┼┤◄─┘                     │                         │                          │
+                  └┼┘                        │                         │                          │
+                   │                         │                         │                          │
+                   │ Authorization Code Req. │                         │                          │
+                   ├────────────────────────►│                         │                          │
+                   │ + t_m to /authorize     │                         │                          │
+                   │                        ┌┼┐                        │                          │
+                   │                        │┼┼──┐ Handle Login        │                          │
+                   │                        │┼│  │ (e.g. Password,     │                          │
+                   │                        │┼┤◄─┘ Phone, etc.)        │                          │
+                   │                        └┼┘                        │                          │
+                   │  Authorization Code     │                         │                          │
+                   │◄────────────────────────┤                         │                          │
+                   │                         │                         │                          │
+                   │ Authorization Code + t  │                         │                          │
+                   ├────────────────────────►│                         │                          │
+                   │                         │                         │                          │
+                   │ access, refresh token   │                         │                          │
+                   │◄────────────────────────┤                         │                          │
+                   │                         │                         │                          │
+                   │         Resource Request + access token           │                          │
+                   ├─────────────────────────┬────────────────────────►│                          │
+                   │                         │                         │                          │
+                   │                         │ Introspect access token │                          │
+                   │                         │◄────────────────────────┤                          │
+                   │                         │                         │                          │
+                   │                         │ user_id, etc.           │                          │
+                   │                         ├────────────────────────►│                          │
+                   │                         │                         │                          │
+                   │                                                   │Resource Request (user_id)│
+                   │                                                   ├─────────────────────────►│
+                   │                                                   │                          │
+                   │                Resource Response                  │                          │
+                   │◄──────────────────────────────────────────────────┤◄─────────────────────────┤
+                   │                                                   │                          │
 ```

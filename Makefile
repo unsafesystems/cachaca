@@ -9,6 +9,9 @@ protoc:
 	protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		internal/helloworld/helloworld.proto
+	protoc --go_out=. --go_opt=paths=source_relative \
+    		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    		auth/oidc/pb/oidc.proto
 
 mockery:
 	mockery --dir auth --output mocks --name Authorizer

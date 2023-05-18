@@ -1,0 +1,36 @@
+syntax = "proto3";
+option go_package = "github.com/unsafesystems/cachaca/auth/oidc/pb";
+
+package cachaca.authentication.v1;
+
+message GetAuthURLRequest {}
+
+message GetAuthURLResponse {
+  string url = 1;
+}
+
+message ExchangeCodeRequest {
+  string code = 1;
+  string state = 2;
+}
+
+message ExchangeCodeResponse {}
+
+message RefreshTokenRequest {}
+
+message RefreshTokenResponse {}
+
+message ExchangeTokenRequest {
+  string token = 1;
+}
+
+message ExchangeTokenResponse {
+  string token = 1;
+}
+
+service OIDC {
+  rpc GetAuthURL(GetAuthURLRequest) returns (GetAuthURLResponse) {}
+  rpc ExchangeCode(ExchangeCodeRequest) returns (ExchangeCodeResponse) {}
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {}
+  rpc ExchangeToken(ExchangeTokenRequest) returns (ExchangeTokenResponse) {}
+}

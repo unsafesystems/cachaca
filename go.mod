@@ -14,7 +14,7 @@ require (
 	github.com/redis/rueidis v1.0.8
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.4
-	github.com/zitadel/oidc/v2 v2.6.2
+	github.com/zitadel/oidc/v2 v2.6.3
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.42.0
 	golang.org/x/net v0.10.0
 	golang.org/x/oauth2 v0.8.0

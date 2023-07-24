@@ -408,8 +408,8 @@ github.com/unsafesystems/mockoidc v0.0.0-20230508072527-8dda0c865ecc/go.mod h1:r
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
-github.com/zitadel/oidc/v2 v2.6.4 h1:bruA+KOFHcGpxr++WgtvR82ZlH54kKituu5xE4wpF7o=
-github.com/zitadel/oidc/v2 v2.6.4/go.mod h1:owrsdzRqGvIZjBCY9LY1ZUYJ0mRUbGkQpZ3OskXL4wM=
+github.com/zitadel/oidc/v2 v2.7.0 h1:IGX4EDk6tegTjUSsZDWeTfLseFU0BdJ/Glf1tgys2lU=
+github.com/zitadel/oidc/v2 v2.7.0/go.mod h1:zkUkVJS0sDVy9m0UA9RgO3f8i/C0rtjvXU36UJj7T+0=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
